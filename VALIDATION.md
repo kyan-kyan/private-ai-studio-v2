@@ -64,3 +64,13 @@ ChatGPTのアカウント認証に加え、ChatGPT Codex ConnectorをGitHub個�
 - Wrangler 4.154.0のdeploy --dry-run成功。ローカルWorker実行は環境のuv_interface_addressesエラーで起動できなかったため、Workers実ランタイムの検証とは扱わない。
 - ブラウザの412px iframeでclientWidth=scrollWidth=397を確認。Pixel実機ではない。
 - 中継サーバーの本番公開、Cloudflare本人認証、Kaggle APIトークンの設定、自動経路の実生成は未完了。
+
+## Supabase本番公開 — 初回Kaggle API認証待ち
+
+- 接続済み組織の新規専用プロジェクト作成費用をAPIで確認し、$0/month。利用者の許可を受けてPrivate AI Studioを作成。既存WatchTowerには変更なし。
+- `studio-relay` Edge Functionを公開し、HTTP health 200、キーなし401、正しい個人用キー200（authenticated=true, configured=false, needsSetup=true）、別Origin403、Kaggle未設定503を確認。
+- DBでanon/authenticatedのprivateスキーマ使用権・テーブルSELECT権がfalseであること、ジョブ件数0であることを確認。
+- セキュリティアドバイザーの指摘はprivate2テーブルの「RLS有効・ポリシーなし」というINFOのみ。外部は全拒否する意図どおりの設定。説明: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
+- Nodeテスト24件成功。Supabase版の認証、初回設定、重複送信の抑止、通信結果不明、MP4待ち、画面での接続ファイル取り込みを追加検証。Kaggle応答は疑似であり、実生成の証明ではない。
+- 個人用の接続ファイルを非公開で用意。専用キーを含むためGitHubには保存しない。Kaggle APIトークンは含めない。
+- Kaggle APIトークンの登録・この経路での実GPU生成は未完了。手動Notebookでの実生成と混同しない。

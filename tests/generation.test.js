@@ -12,7 +12,7 @@ function setup(fetcher) {
       elements.set(id,{value:'',textContent:'',hidden:false,disabled:false,open:false,
         addEventListener:(name,fn)=>listeners.set(name,fn),
         hasAttribute:name=>id==='preview' && name==='src',
-        emit:async name=>listeners.get(name)?.()});
+        emit:async (name,event)=>listeners.get(name)?.(event)});
     }
     return elements.get(id);
   }
@@ -54,4 +54,22 @@ test('UI rejects a Kaggle token entered instead of the dedicated connection key'
  let requests=0;const ui=setup(async()=>{requests++;return Response.json({});});
  ui.element('relayKey').value='KGAT_'+'x'.repeat(40);await ui.element('connectRelay').emit('click');
  assert.equal(requests,0);assert.match(ui.element('generationStatus').textContent,/Kaggle APIトークンではなく/);
+});
+
+test('connected relay without Kaggle credentials cannot generate and exposes setup instead',async()=>{
+ const ui=setup(async()=>Response.json({provider:'kaggle-svd',authenticated:true,configured:false,username:'owner'}));
+ await ui.element('connectRelay').emit('click');
+ assert.equal(ui.element('generate').disabled,true);assert.equal(ui.element('kaggleSetup').hidden,false);assert.equal(ui.element('saveKaggle').disabled,false);
+ assert.match(ui.element('generationStatus').textContent,/APIトークンを登録/);
+});
+test('connection file imports the intended relay and setup clears credentials after saving',async()=>{
+ let setupCalls=0;
+ const ui=setup(async(url,options)=>{
+   if(url.endsWith('/connection'))return Response.json({provider:'kaggle-svd',authenticated:true,configured:false});
+   if(url.endsWith('/setup')){setupCalls++;assert.ok(JSON.parse(options.body).token.startsWith('KGAT'));return Response.json({configured:true});}
+ });
+ const target={files:[{size:300,text:async()=>JSON.stringify({schema:'private-ai-studio-connection-v1',endpoint:'https://rhjhrwfvlxuijtjoalzb.supabase.co/functions/v1/studio-relay',key:'a'.repeat(64)})}],value:'selected'};
+ await ui.element('connectionFile').emit('change',{target});assert.equal(target.value,'');
+ ui.element('kaggleUsername').value='owner';ui.element('kaggleToken').value='KGAT_test-credential-not-real';
+ await ui.element('saveKaggle').emit('click');assert.equal(setupCalls,1);assert.equal(ui.element('kaggleToken').value,'');assert.equal(ui.element('generate').disabled,false);
 });

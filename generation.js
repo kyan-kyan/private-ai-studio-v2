@@ -1,18 +1,20 @@
 // This controller never simulates progress or automatically retries a submission.
 export function initGeneration({getJob,onVideo}) {
   const $=id=>document.getElementById(id);
+  const defaultEndpoint='https://rhjhrwfvlxuijtjoalzb.supabase.co/functions/v1/studio-relay';
   const keyName='private-ai-studio.relay-key.v1',endpointName='private-ai-studio.relay-url.v1',pendingName='private-ai-studio.pending.v1';
-  let endpoint='',key='',connected=false,busy=false,pending=null,timer=null,fetchingVideo=false;
+  let endpoint='',key='',connected=false,ready=false,busy=false,pending=null,timer=null,fetchingVideo=false;
   const say=text=>$('generationStatus').textContent=text;
   function savePending(value) {
     pending=value;
     try { if(value) localStorage.setItem(pendingName,JSON.stringify(value)); else localStorage.removeItem(pendingName); } catch {}
   }
   function update() {
-    $('generate').disabled=!connected || busy || Boolean(pending) || !$('preview').hasAttribute('src');
+    $('generate').disabled=!connected || !ready || busy || Boolean(pending) || !$('preview').hasAttribute('src');
     $('connectRelay').disabled=busy;
     $('checkGeneration').disabled=!connected || !pending;
     $('fetchResult').disabled=!connected || fetchingVideo;
+    $('saveKaggle').disabled=!connected || busy;
   }
   function storeConnection() {
     try { localStorage.setItem(endpointName,endpoint); } catch {}
@@ -83,27 +85,52 @@ export function initGeneration({getJob,onVideo}) {
     clearTimeout(timer); connected=false;busy=true;update();
     try {
       const url=new URL($('relayUrl').value.trim());
-      if(url.protocol!=='https:' || url.username || url.password || url.search || url.hash || !['','/'].includes(url.pathname)) throw new Error('中継サーバーのHTTPSのURLを入力してください。');
-      const nextEndpoint=url.origin;
+      if(url.protocol!=='https:' || url.username || url.password || url.search || url.hash || !(['','/'].includes(url.pathname) || /^\/functions\/v1\/studio-relay\/?$/.test(url.pathname))) throw new Error('中継サーバーのHTTPSのURLを入力してください。');
+      const nextEndpoint=url.origin+url.pathname.replace(/\/$/,'');
       if(pending && pending.endpoint!==nextEndpoint) throw new Error('確認中の生成と同じサーバーに接続してください。');
       const nextKey=$('relayKey').value.trim() || (nextEndpoint===endpoint ? key : '');
       if(nextKey.startsWith('KGAT')) throw new Error('ここにはKaggle APIトークンではなく、中継サーバー専用の接続キーを入力してください。');
       if(nextKey.length<32) throw new Error('専用の接続キーを入力してください。KaggleのAPIトークンはここに入力しません。');
       endpoint=nextEndpoint;key=nextKey;
       const info=await api('/v1/connection');
-      if(info.provider!=='kaggle-svd' || info.configured!==true) throw new Error('対応する中継サーバーを確認できません。');
-      connected=true;storeConnection();
+      if(info.provider!=='kaggle-svd' || !(info.configured===true || info.authenticated===true)) throw new Error('対応する中継サーバーを確認できません。');
+      connected=true;ready=info.configured===true;storeConnection();
+      $('kaggleSetup').hidden=info.authenticated!==true;$('kaggleSetup').open=!ready;
+      if(info.username) $('kaggleUsername').value=info.username;
       $('relayKey').value='';$('connectionDetails').open=false;
-      say('中継サーバーに接続しました。Kaggleの認証・GPU利用権限は生成送信時に確認します。');
+      say(ready ? '中継サーバーに接続しました。生成できます。KaggleのGPU利用権限は送信時に確認します。' : '中継サーバーに接続しました。下の初回設定でKaggleのAPIトークンを登録してください。');
     } catch(error) { say(error.message || '接続できませんでした。URLと接続キーを確認してください。'); }
     finally { busy=false;update(); }
     if(connected && pending) await check();
   }
+  $('connectionFile').addEventListener('change',async event=>{
+    const file=event.target.files[0];
+    if(!file) return;
+    try {
+      if(file.size>4096) throw new Error('接続ファイルが大きすぎます。');
+      const data=JSON.parse(await file.text());
+      if(data.schema!=='private-ai-studio-connection-v1' || data.endpoint!==defaultEndpoint || !/^[a-f0-9]{64}$/.test(data.key||'')) throw new Error('このアプリ用の接続ファイルを選んでください。');
+      $('relayUrl').value=data.endpoint;$('relayKey').value=data.key;
+      await connect();
+    }catch(error){say(error.message || '接続ファイルを読み込めません。');}
+    finally {event.target.value='';}
+  });
+  $('saveKaggle').addEventListener('click',async()=>{
+    if(!connected || busy || pending) return;
+    busy=true;update();
+    try {
+      const result=await api('/v1/setup',{username:$('kaggleUsername').value.trim(),token:$('kaggleToken').value.trim()});
+      if(result.configured!==true) throw new Error('Kaggleの設定完了を確認できません。');
+      ready=true;$('kaggleSetup').open=false;
+      say('KaggleのAPI認証を保存しました。画像を選び「生成」を押してください。実際のGPU利用権限は生成時に確認します。');
+    }catch(error){say(error.message || 'Kaggleの認証情報を保存できません。');}
+    finally {$('kaggleToken').value='';busy=false;update();}
+  });
   $('connectRelay').addEventListener('click',connect);
   $('fetchResult').addEventListener('click',download);
   $('checkGeneration').addEventListener('click',check);
   $('generate').addEventListener('click',async()=>{
-    if(!connected || busy || pending) return;
+    if(!connected || !ready || busy || pending) return;
     let job;
     try { job=getJob(); } catch(error) { say(error.message);return; }
     busy=true;update();
@@ -119,7 +146,7 @@ export function initGeneration({getJob,onVideo}) {
     } finally { busy=false;update(); }
   });
   const observer=new MutationObserver(update);observer.observe($('preview'),{attributes:true,attributeFilter:['src']});
-  try { $('relayUrl').value=localStorage.getItem(endpointName)||''; } catch {}
+  try { $('relayUrl').value=localStorage.getItem(endpointName)||defaultEndpoint; } catch {}
   try {
     const stored=JSON.parse(localStorage.getItem(pendingName));
     if(stored && /^[a-f0-9-]{36}$/.test(stored.id) && typeof stored.endpoint==='string') pending=stored;
