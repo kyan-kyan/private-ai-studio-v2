@@ -8,6 +8,8 @@
 .automatic{border:1px solid #4c665c;border-radius:14px;padding:18px;margin:24px 0}.automatic h2{margin:0 0 8px}.automatic input{font:inherit;max-width:100%;border:1px solid #475169;background:#0e1420;color:inherit;padding:12px}.automatic p{overflow-wrap:anywhere}#generationStatus{font-size:13px}#jobNotebook{display:block;margin-top:12px}
 
 .device-connect input[type=text]{font:inherit;background:#0e1420;color:inherit;border:1px solid #475169;padding:12px;letter-spacing:.2em}.remember{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:400;min-height:44px}.remember input{width:22px;height:22px;flex-shrink:0;accent-color:#b8f5cc}#connectionStatus,#importStatus{font-size:13px;overflow-wrap:anywhere}
+
+.generation-progress{margin:16px 0;padding:16px;border-radius:12px;background:#0e1420;border:1px solid #475169}.generation-progress progress{display:block;width:100%;height:8px;margin:12px 0;accent-color:#b8f5cc}.generation-progress p{margin:8px 0}
 </style></head>
 <body><main><header><span class="mark">P / AI</span><div><p class="eyebrow">YOUR PERSONAL CREATIVE SPACE</p><h1>Private AI Studio</h1></div></header>
 <section class="notice"><strong>画像 → 動画 / Kaggle SVD</strong><p>軽量設定で実際の動画生成とMP4取得を確認しました（テスト画像1件）。初回はこの端末を接続し、写真と設定を選んで「生成」を押してください。</p><small>画面は公開用です。選んだ画像はこの端末で処理し、「生成」を押すまで送信しません。自動生成時は中継サーバーを経由してKaggleのPrivate Notebookに送信します。</small></section>
@@ -16,7 +18,7 @@
 <label for="motion">動きの強さ <output id="motionValue">127</output></label><input id="motion" type="range" min="1" max="255" value="127"><p class="hint">大きいほど動きが増える傾向があります。指定どおりの動作は保証されません。</p>
 
 <label for="seed">シード</label><input id="seed" type="number" min="0" max="4294967295" step="1" value="42"><p class="hint">選択した解像度に合わせます。縦写真も切らずに余白を付けます。</p><p id="settingsStatus" class="hint" role="status"></p><button id="resetSettings" class="secondary">設定を初期値に戻す</button>
-<div class="automatic"><h2>画像から動画を生成</h2><p class="hint">軽量設定の自動生成を確認済みです。初回のみ接続コードでこの端末を登録してください。Kaggleの認証情報はサーバー側で管理します。文章による動作指定はまだ利用できません。</p><button id="generate">生成</button><p id="generationStatus" role="status" aria-live="polite">上の「この端末の接続」で初回の接続コードを入力してください。</p><button id="viewLatest" class="secondary" hidden>前回の生成結果を表示</button><button id="resumeOther" class="secondary" hidden>前の生成を確認</button><button id="checkGeneration" class="secondary">生成状況を再確認</button><button id="fetchResult" class="secondary" hidden>動画を再取得</button><a id="jobNotebook" target="_blank" rel="noopener noreferrer" hidden>Kaggleで詳細を確認 ↗</a></div><details><summary>手動Notebookの書き出し</summary><button id="export" class="secondary" disabled>画像入りNotebookを保存</button><a id="saveNotebook" class="download" hidden>保存が始まらない場合はこちら</a><p id="status" role="status" aria-live="polite">画像を選ぶと保存できます。</p></details></section>
+<div class="automatic"><h2>画像から動画を生成</h2><p class="hint">軽量設定の前回実測は約9分25秒です（テスト1件・所要時間は変動します）。動画の再生時間とは異なります。初回のみ接続コードでこの端末を登録してください。Kaggleの認証情報はサーバー側で管理します。文章による動作指定はまだ利用できません。</p><button id="generate">生成</button><p id="generationStatus" role="status" aria-live="polite">上の「この端末の接続」で初回の接続コードを入力してください。</p><div id="generationProgress" class="generation-progress" hidden><strong id="progressPhase"></strong><progress id="progressActivity" aria-label="処理中。進捗率は取得できません"></progress><p id="progressElapsed"></p><p id="progressChecked" class="hint"></p><p id="progressReference" class="hint"></p><p class="hint">正確な進捗率は取得できないため、％は表示しません。「処理中」には環境準備・モデル読み込み・動画計算が含まれます。</p></div><button id="viewLatest" class="secondary" hidden>前回の生成結果を表示</button><button id="resumeOther" class="secondary" hidden>前の生成を確認</button><button id="checkGeneration" class="secondary">生成状況を再確認</button><button id="fetchResult" class="secondary" hidden>動画を再取得</button><a id="jobNotebook" target="_blank" rel="noopener noreferrer" hidden>Kaggleで詳細を確認 ↗</a></div><details><summary>手動Notebookの書き出し</summary><button id="export" class="secondary" disabled>画像入りNotebookを保存</button><a id="saveNotebook" class="download" hidden>保存が始まらない場合はこちら</a><p id="status" role="status" aria-live="polite">画像を選ぶと保存できます。</p></details></section>
 <section class="card" id="kaggleGuide"><h2><span>03</span> 動画の再生・保存</h2><label class="upload" for="video">保存済みのMP4を選ぶ</label><input id="video" type="file" accept="video/mp4,.mp4"><video id="player" controls playsinline preload="metadata" hidden></video><a id="saveVideo" class="download" hidden>MP4を保存</a><p id="videoStatus" role="status"></p>
 <details><summary>手動でKaggleを実行する場合</summary><h2><span>03</span> Kaggleで実行（手動方式）</h2><a class="download" href="https://www.kaggle.com/code" target="_blank" rel="noopener noreferrer">Kaggleを開く ↗</a><p class="hint">別タブで開きます。この画面を閉じずに切り替えると、準備した画像を保てます。</p><ol><li>「画像入りNotebookを保存」ボタンで <b>.ipynb</b> をダウンロード。</li><li>New Notebook → File → Import Notebook → Browse Filesで、ダウンロードした <b>private-ai-studio.ipynb</b> を選択。</li><li>Notebookの公開範囲を <b>Private</b> に設定。画像を含むため公開しないでください。</li><li>Settingsで <b>GPU T4</b> と <b>Internet ON</b> を設定し、Run All。</li><li>最後のセルに表示されるMP4を保存。表示されない場合は右のOutputを更新し、<b>/kaggle/working → private-ai-studio.mp4 → ⋮ → Download</b>。下から選ぶと再生できます。</li><li>保存後はKaggle上部のセッションの <b>⋮ → Stop session</b> でGPUを停止。</li></ol><p class="hint">Kaggleへのログイン・GPU利用条件・空き枠が必要です。無料枠の範囲で利用してください。必要な本人確認やモデル利用条件の同意はご自身で行ってください。</p>
 <details><summary>スマホでメニューが見つからないとき</summary><p>Chromeの右上 ⋮ から「PC版サイト」に切り替え、KaggleのFileやSettingsを探してください。ブラウザのダウンロード一覧から <b>private-ai-studio.ipynb</b> を確認できます。</p></details><details class="checklist"><summary>実行前後の確認メモ</summary><p class="hint">自分でチェックするメモです。Kaggleの生成状況とは連動しません。再読み込みすると消えます。</p><label><input type="checkbox"> NotebookがPrivateになっている</label><label><input type="checkbox"> GPU T4とInternet ONを確認した</label><label><input type="checkbox"> MP4を端末に保存した</label><label><input type="checkbox"> GPUセッションを停止した</label></details><details><summary>エラーが出たら</summary><ul><li>GPUなし：AcceleratorをGPUに変更。</li><li>ダウンロード失敗：InternetをONに。401/403はモデルのアクセス権も確認。</li><li>メモリ不足：他のGPU処理を終了しセッションを再起動。</li><li>依存関係エラー：出力の最初のエラーを確認。Notebookを再インポートして実行。</li></ul></details>
@@ -52,8 +54,29 @@ function initGeneration({getJob,onVideo}) {
   const keyName='private-ai-studio.relay-key.v1',endpointName='private-ai-studio.relay-url.v1',pendingName='private-ai-studio.pending.v1';
   let endpoint='',key='',connected=false,ready=false,busy=false,pending=null,timer=null,fetchingVideo=false,otherJob=null,latestJob=null;
   const say=text=>$('generationStatus').textContent=text;
+  let progressTimer=null,lastRecord=null,lastConfirmed=null;
+  function showProgress(record) {
+    clearTimeout(progressTimer);
+    if(record) {lastRecord=record;lastConfirmed=Date.now();}
+    const active=Boolean(pending && lastRecord && lastRecord.id===pending.id);
+    $('generationProgress').hidden=!active;
+    if(!active) return;
+    const phases={submitting:'送信中',unknown:'送信結果を確認中',queued:'実行待ち',running:'Kaggleで処理中',finishing:'出力を確認中',completed:'動画を取得中',failed:'失敗・停止'};
+    $('progressPhase').textContent=phases[lastRecord.status] || '状態確認中';
+    const started=Date.parse(lastRecord.createdAt);
+    const elapsed=Number.isFinite(started)?Math.max(0,Math.floor((Date.now()-started)/1000)):null;
+    $('progressElapsed').textContent=elapsed===null?'開始時刻を確認中':`送信からの経過：${Math.floor(elapsed/60)}分${String(elapsed%60).padStart(2,'0')}秒`;
+    const age=Math.max(0,Math.floor((Date.now()-lastConfirmed)/1000));
+    $('progressChecked').textContent=`サーバー応答の最終確認：${age}秒前。15秒ごとに状態を確認します。`;
+    $('progressReference').textContent=elapsed!==null && elapsed>900
+      ? '前回の実測9分25秒を超えています。15分以上経過していますが、完了時刻や計算の進み具合はAPIから確認できません。Kaggleの詳細も確認してください。'
+      : '参考：軽量設定の前回実測は約9分25秒（1件）。完了時刻を保証する目安ではありません。';
+    $('progressActivity').hidden=['failed','completed'].includes(lastRecord.status);
+    progressTimer=setTimeout(()=>showProgress(),1000);
+  }
   function savePending(value) {
     pending=value;
+    if(!value) {clearTimeout(progressTimer);lastRecord=null;$('generationProgress').hidden=true;}
     try { if(value) localStorage.setItem(pendingName,JSON.stringify(value)); else localStorage.removeItem(pendingName); } catch {}
   }
   function update() {
@@ -98,6 +121,7 @@ function initGeneration({getJob,onVideo}) {
   async function accept(record) {
     if(!record || record.id!==pending?.id) throw new Error('生成IDを確認できません。');
     resultLink(record.notebookUrl);
+    showProgress(record);
     const messages={submitting:'Kaggleへ送信中です。',unknown:'送信結果を確認中です。重複実行を避けるため再送しません。',queued:'Kaggleの実行待ちです。',running:'Kaggleで生成中です。',finishing:'出力の確認待ちです。',completed:'MP4の出力を確認しました。動画を取得します。',failed:'Kaggleで生成が失敗または拒否されました。'};
     say(record.message || messages[record.status] || '生成状況を確認しています。');
     $('fetchResult').hidden=record.status!=='completed';

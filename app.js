@@ -1,5 +1,5 @@
 import {makeNotebook,validateJob} from './notebook.js';
-import {initGeneration} from './generation.js?v=20261028-simple1';
+import {initGeneration} from './generation.js?v=20261028-progress1';
 const $ = id => document.getElementById(id);
 let imageBase64 = null, videoUrl = null, notebookUrl = null, selectionVersion = 0;
 function clearNotebook() {

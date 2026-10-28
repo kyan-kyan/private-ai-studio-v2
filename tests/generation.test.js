@@ -39,6 +39,9 @@ test('UI sends once on double tap and retains only job metadata for recovery',as
  await ui.element('pairRelay').emit('click');
  await Promise.all([ui.element('generate').emit('click'),ui.element('generate').emit('click')]);
  assert.equal(count,1);assert.equal(ui.element('generate').textContent,'生成状況を確認');
+ assert.equal(ui.element('generationProgress').hidden,false);
+ assert.match(ui.element('progressPhase').textContent,/Kaggleで処理中/);
+ assert.match(ui.element('progressReference').textContent,/9分25秒/);
  assert.ok(!JSON.stringify([...ui.entries.values()]).includes('fixture'));
 });
 test('UI never reports success after submit disconnect and does not resubmit on status check',async()=>{

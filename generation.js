@@ -5,8 +5,29 @@ export function initGeneration({getJob,onVideo}) {
   const keyName='private-ai-studio.relay-key.v1',endpointName='private-ai-studio.relay-url.v1',pendingName='private-ai-studio.pending.v1';
   let endpoint='',key='',connected=false,ready=false,busy=false,pending=null,timer=null,fetchingVideo=false,otherJob=null,latestJob=null;
   const say=text=>$('generationStatus').textContent=text;
+  let progressTimer=null,lastRecord=null,lastConfirmed=null;
+  function showProgress(record) {
+    clearTimeout(progressTimer);
+    if(record) {lastRecord=record;lastConfirmed=Date.now();}
+    const active=Boolean(pending && lastRecord && lastRecord.id===pending.id);
+    $('generationProgress').hidden=!active;
+    if(!active) return;
+    const phases={submitting:'送信中',unknown:'送信結果を確認中',queued:'実行待ち',running:'Kaggleで処理中',finishing:'出力を確認中',completed:'動画を取得中',failed:'失敗・停止'};
+    $('progressPhase').textContent=phases[lastRecord.status] || '状態確認中';
+    const started=Date.parse(lastRecord.createdAt);
+    const elapsed=Number.isFinite(started)?Math.max(0,Math.floor((Date.now()-started)/1000)):null;
+    $('progressElapsed').textContent=elapsed===null?'開始時刻を確認中':`送信からの経過：${Math.floor(elapsed/60)}分${String(elapsed%60).padStart(2,'0')}秒`;
+    const age=Math.max(0,Math.floor((Date.now()-lastConfirmed)/1000));
+    $('progressChecked').textContent=`サーバー応答の最終確認：${age}秒前。15秒ごとに状態を確認します。`;
+    $('progressReference').textContent=elapsed!==null && elapsed>900
+      ? '前回の実測9分25秒を超えています。15分以上経過していますが、完了時刻や計算の進み具合はAPIから確認できません。Kaggleの詳細も確認してください。'
+      : '参考：軽量設定の前回実測は約9分25秒（1件）。完了時刻を保証する目安ではありません。';
+    $('progressActivity').hidden=['failed','completed'].includes(lastRecord.status);
+    progressTimer=setTimeout(()=>showProgress(),1000);
+  }
   function savePending(value) {
     pending=value;
+    if(!value) {clearTimeout(progressTimer);lastRecord=null;$('generationProgress').hidden=true;}
     try { if(value) localStorage.setItem(pendingName,JSON.stringify(value)); else localStorage.removeItem(pendingName); } catch {}
   }
   function update() {
@@ -51,6 +72,7 @@ export function initGeneration({getJob,onVideo}) {
   async function accept(record) {
     if(!record || record.id!==pending?.id) throw new Error('生成IDを確認できません。');
     resultLink(record.notebookUrl);
+    showProgress(record);
     const messages={submitting:'Kaggleへ送信中です。',unknown:'送信結果を確認中です。重複実行を避けるため再送しません。',queued:'Kaggleの実行待ちです。',running:'Kaggleで生成中です。',finishing:'出力の確認待ちです。',completed:'MP4の出力を確認しました。動画を取得します。',failed:'Kaggleで生成が失敗または拒否されました。'};
     say(record.message || messages[record.status] || '生成状況を確認しています。');
     $('fetchResult').hidden=record.status!=='completed';
