@@ -7,7 +7,7 @@ ChatGPTのアカウント認証に加え、ChatGPT Codex ConnectorをGitHub個�
 
 ## ローカルで確認済み
 
-- Node標準テスト4件成功。NotebookのJSON・Python構文・画像データの復元・不正入力・fps設定を確認。
+- Node標準テスト5件成功。NotebookのJSON・Python構文・画像データの復元・不正入力・fps設定を確認。
 - テストPNG（720×1280）のブラウザプレビューを確認。
 - 412pxのiframeで横のはみ出しなし。Pixel実機ではない。
 - ffmpeg製H.264/MP4をブラウザに読み込み、2秒・readyState=4・320×180・エラーなしを確認。これは画面確認専用でAI生成ではない。
@@ -22,18 +22,28 @@ ChatGPTのアカウント認証に加え、ChatGPT Codex ConnectorをGitHub個�
 - ダウンロードした実ファイルの全Pythonセル構文・画像復元・設定fps=5とseed=123を確認。
 - その実NotebookをKaggleに取り込み、Private・Internet ON・GPU T4 x2を設定して実行開始。
 
+## 実生成と保存・再生の確認
+
+- 公開画面から保存した軽量NotebookをKaggleに取り込み、Private・Internet ON・GPU T4 x2で実行。
+- 実行レポートstatus=completed。Tesla T4、torch 2.11.0+cu128、576×320、14フレーム、15ステップ、fps5、seed123、435.5秒（モデル取得済み）。
+- KaggleのOutputからMP4とgeneration-report.jsonをダウンロード。ffprobeでH.264、576×320、5fps、14フレーム、2.8秒、18092バイトを確認。
+- 公開画面に実MP4を選び、readyState4、paused=falseからended=trueになるまで再生を確認。Web画面から再保存し、元のMP4とバイト一致。
+- 新しい公開画面を412pxのiframeで表示し、clientWidth=scrollWidth=397、1列レイアウトを確認。これはPixel実機ではない。
+- 破損PNGで日本語エラーと保存ボタン無効化を確認。
+
 ## 未検証
 
 - Android Chrome実機でのNotebookダウンロード。クラウドChromeの公開環境では成功。
-- この新NotebookのKaggleインポート・T4実生成・実MP4取得。
+- 標準設定1024×576での生成完了。軽量設定は成功。
 - Pixel実機での全操作。
 
 ## 次の確認
 
-1. Kaggleの実行結果を確認。
-2. 公開画面で画像選択・Notebook保存・MP4の読み込みを確認。
-3. Kaggleに本人ログインし、Private・GPU T4・Internet ONで実行。
-4. 実MP4とgeneration-report.jsonを確認。失敗時は最初の例外とgeneration-error.jsonから修正。
+1. Pixel実機での操作。
+2. 標準1024×576の生成完了と速度改善。
+3. 文章による動作指定・画像生成・GPUへの直接送信／動画回収。
+
+実行レポートはvalidation/generation-report.json、MP4の検査結果はvalidation/video-metadata.jsonを参照。テスト動画そのものはリポジトリに含めない。
 
 ## 再生成
 

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "provider": "kaggle-svd",
+  "preset": "light",
+  "width": 576,
+  "height": 320,
+  "steps": 15,
+  "model": "stabilityai/stable-video-diffusion-img2vid",
+  "frames": 14,
+  "fps": 5,
+  "motion": 127,
+  "seed": 123,
+  "status": "completed",
+  "seconds": 435.5,
+  "gpu": "Tesla T4",
+  "torch": "2.11.0+cu128"
+}

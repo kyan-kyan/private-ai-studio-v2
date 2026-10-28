@@ -7,9 +7,9 @@ PixelのChromeで使う、個人向け画像→動画ワークフロー。会社
 |機能|状態|
 |---|---|
 |スマホ向け画面・画像プレビュー|実装済み。ブラウザ／モバイル相当幅で確認、実機未確認|
-|画像を埋め込んだNotebook出力|実装済み。JSON・Python構文・画像データ往復をテスト|
-|SVDで画像→動画・MP4書き出し|Notebookコード実装済み。今回のKaggle実生成は未検証|
-|MP4のローカル再生／保存|実装済み。テストMP4の読み込み確認、実機と保存完了は未確認|
+|画像を埋め込んだNotebook出力|公開画面からの実ダウンロードとKaggleへの取り込みを確認済み|
+|SVDで画像→動画・MP4書き出し|軽量設定でKaggle T4の実生成・MP4取得を確認済み。標準は未検証|
+|MP4のローカル再生／保存|生成した実MP4でWeb再生・再保存を確認済み。Pixel実機は未確認|
 |画像生成・文章による動作指定|未実装。SVDはテキスト制御に非対応|
 |WebからKaggleへの直接実行|未実装。手動インポート方式|
 |GitHub Pages公開|公開済み。公開画面からの画像入りNotebook保存成功|
@@ -52,14 +52,20 @@ PixelのChromeで使う、個人向け画像→動画ワークフロー。会社
 
 `notebook.js`のジョブ形式とエクスポーターを分離しています。将来のクラウドGPU／個人GPUは新しいプロバイダーを追加し、認証を持つバックエンド経由で接続します。
 
+## 実生成の確認結果
+
+公開画面から保存したNotebookをKaggleのPrivate Notebookに取り込み、Tesla T4でSVD生成に成功しました。軽量576×320・14フレーム・15ステップ・seed123・再生5fps。MP4はH.264・2.8秒・18,092バイトでした。生成セルの実行時間は435.5秒で、モデル取得済みのセッションでの計測です。初回は環境・モデル取得の時間が追加されます。
+
+実MP4をKaggleからダウンロードし、公開Web画面に読み込んで再生終了まで確認。Web画面から再保存したファイルも元ファイルとバイト一致しました。これで全ての入力画像の成功を保証するものではありません。
+
 ## 次の開発タスク
 
-1. Kaggle T4で実生成を検証し、実MP4と実行レポートを確認。
-2. Pixel Chromeで画像選択、Notebook保存、Kaggleインポートを実機検証。
-3. このNotebookをKaggle T4で実行し、generation-report.jsonと実MP4を確認。失敗時はgeneration-error.jsonで原因を修正。
-4. 実生成成功後、依存ライブラリ・モデルリビジョンを検証済み構成として固定。
-5. 文章での動作制御に対応したモデルと画像生成を追加検討。
-6. 安全な認証を備えたGPUプロバイダーを追加し、直接実行／進捗／動画回収を実装。
+1. Pixel Chrome実機で画像選択・Notebook保存・Kaggleインポートを確認。
+2. 認証を持つバックエンドを設け、GPUへの直接送信・進捗表示・動画回収を実装。
+3. 文章で動作を制御できるモデルを検討。SVDは非対応。
+4. 画像生成機能を追加。
+5. 標準1024×576の速度改善と、生成完了までの検証。
+6. モデルリビジョンの固定と、別のGPUプロバイダーへの対応。
 
 公式参考: [SVDモデル](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid)、[Diffusers SVD](https://huggingface.co/docs/diffusers/api/pipelines/stable_diffusion/svd)、[GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)。
 

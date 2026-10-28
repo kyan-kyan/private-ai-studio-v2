@@ -1,0 +1,19 @@
+{
+  "programs": [],
+  "streams": [
+    {
+      "codec_name": "h264",
+      "width": 576,
+      "height": 320,
+      "r_frame_rate": "5/1",
+      "nb_read_frames": "14"
+    }
+  ],
+  "format": {
+    "duration": "2.800000",
+    "size": "18092"
+  },
+  "sha256": "2110a673bcd2bd435b892f61aca89638a55ee67ec2bf5c6385ee442171cbe807",
+  "distinct_decoded_frames": 14,
+  "tested_source_commit": "7337a475067b0ddc4b11649ed2520e3dd47f2f11"
+}
