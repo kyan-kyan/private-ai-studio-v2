@@ -1,0 +1,13 @@
+{
+  "name": "private-ai-studio-relay",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-28",
+  "workers_dev": true,
+  "vars": {
+    "ALLOWED_ORIGIN": "https://kyan-kyan.github.io",
+    "KAGGLE_USERNAME": "yyykan"
+  },
+  "durable_objects": {"bindings": [{"name": "STUDIO", "class_name": "StudioJobs"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["StudioJobs"]}],
+  "observability": {"enabled": false}
+}

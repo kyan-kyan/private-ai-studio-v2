@@ -54,3 +54,13 @@ ChatGPTのアカウント認証に加え、ChatGPT Codex ConnectorをGitHub個�
 1024×576・14フレーム・25ステップでは、GPU使用率100%、GPUメモリ8.3GiB、3/25時点の表示83.00秒/ステップを観測。待ち時間と無料枠の消費を抑えるため中断した。
 初期値を576×320・15ステップに変更し、標準設定も選べるようにした。Notebook内の画像整形と推論の両方に解像度を渡す。5件のテストで構文・画像復元・設定の伝達を確認。
 破損PNGを選んだ際の英語のデコードエラーも確認し、日本語の案内に置き換えた。
+
+## 自動生成経路の実装（まだ実生成未検証）
+
+- Cloudflare Workers + SQLite Durable Objects向けの中継コードを追加。Kaggleの公式kagglesdk 0.1.38のリクエスト定義を確認し、Private・T4・Internet ON・30分上限で送信する実装。
+- 同一ID再送、別ジョブの同時実行抑止、送信結果不明時の再送禁止、MP4出力待ち、認証／CORS拒否を検証。疑似応答によるテストであり、実GPU生成の証拠ではない。
+- 画面には未接続時の無効化、状態確認、MP4の取得、前回の生成IDからの復帰処理を追加。
+- Nodeテスト17件成功。Notebookの生成処理は変更せず、以前の手動T4検証結果を保持。
+- Wrangler 4.154.0のdeploy --dry-run成功。ローカルWorker実行は環境のuv_interface_addressesエラーで起動できなかったため、Workers実ランタイムの検証とは扱わない。
+- ブラウザの412px iframeでclientWidth=scrollWidth=397を確認。Pixel実機ではない。
+- 中継サーバーの本番公開、Cloudflare本人認証、Kaggle APIトークンの設定、自動経路の実生成は未完了。

@@ -1,4 +1,5 @@
-import {makeNotebook} from './notebook.js';
+import {makeNotebook,validateJob} from './notebook.js';
+import {initGeneration} from './generation.js?v=20261028-relay1';
 const $ = id => document.getElementById(id);
 let imageBase64 = null, videoUrl = null, notebookUrl = null, selectionVersion = 0;
 function clearNotebook() {
@@ -117,3 +118,20 @@ $('player').addEventListener('loadedmetadata', () => {
   $('videoStatus').textContent = `MP4の再生準備ができました。${player.videoWidth} × ${player.videoHeight} · ${Number.isFinite(player.duration) ? player.duration.toFixed(1) + '秒' : '再生時間不明'}`;
 });
 $('player').addEventListener('error', () => { $('videoStatus').textContent = 'この動画を再生できません。MP4の破損または未対応コーデックを確認してください。'; });
+
+initGeneration({
+  getJob: () => {
+    const job={provider:'kaggle-svd',imageBase64,preset:$('preset').value,duration:Number($('duration').value),motion:Number($('motion').value),seed:Number($('seed').value)};
+    validateJob(job);
+    if(job.preset!=='light') throw new Error('自動生成は軽量設定を選んでください。標準設定の自動実行は未検証です。');
+    return job;
+  },
+  onVideo: blob => {
+    $('player').pause();
+    if(videoUrl) URL.revokeObjectURL(videoUrl);
+    videoUrl=URL.createObjectURL(blob);
+    $('player').src=videoUrl;$('player').hidden=false;
+    $('saveVideo').href=videoUrl;$('saveVideo').download='private-ai-studio.mp4';$('saveVideo').hidden=false;
+    $('videoStatus').textContent='Kaggleから取得したMP4を確認中です。';
+  }
+});

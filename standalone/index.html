@@ -4,19 +4,21 @@
 .download{margin-top:12px;border-radius:10px}
 
 .checklist label{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:400;min-height:44px}.checklist input{width:22px;height:22px;flex-shrink:0;accent-color:#b8f5cc}#resetSettings{font-size:13px;padding:10px;margin:0 0 18px}li{overflow-wrap:anywhere}
+
+.automatic{border:1px solid #4c665c;border-radius:14px;padding:18px;margin:24px 0}.automatic h2{margin:0 0 8px}.automatic input{font:inherit;max-width:100%;border:1px solid #475169;background:#0e1420;color:inherit;padding:12px}.automatic p{overflow-wrap:anywhere}#generationStatus{font-size:13px}#jobNotebook{display:block;margin-top:12px}
 </style></head>
 <body><main><header><span class="mark">P / AI</span><div><p class="eyebrow">YOUR PERSONAL CREATIVE SPACE</p><h1>Private AI Studio</h1></div></header>
-<section class="notice"><strong>画像 → 動画 / Kaggle SVD</strong><p>軽量設定でKaggle T4の実生成を確認済みです。画像を準備 → Notebookを保存 → Kaggleで手動実行。</p><small>画面は公開用です。選んだ画像はこの端末で処理し、ここからサーバーへ送信しません。</small></section>
+<section class="notice"><strong>画像 → 動画 / Kaggle SVD</strong><p>手動方式はKaggle T4で実生成を確認済み。自動生成はサーバー接続の準備中です。接続完了後はこの画面から送信・状態確認・MP4取得を行います。</p><small>画面は公開用です。選んだ画像はこの端末で処理し、「生成」を押すまで送信しません。自動生成時は中継サーバーを経由してKaggleのPrivate Notebookに送信します。</small></section>
 <div class="grid"><section class="card"><h2><span>01</span> 元の画像</h2><label class="upload" for="image">画像を選ぶ<small>JPEG・PNG・WebP / 20MBまで</small></label><input id="image" type="file" accept="image/jpeg,image/png,image/webp"><figure id="previewBox" hidden><img id="preview" alt="選択した画像のプレビュー"><figcaption id="imageInfo"></figcaption></figure><button id="clear" class="secondary" hidden>画像を取り除く</button><p id="imageError" role="alert"></p>
 <h2><span>02</span> 動画の設定</h2><label for="preset">画質・処理の重さ</label><select id="preset"><option value="light">軽量 576×320（初回テスト向け）</option><option value="standard">標準 1024×576（時間がかかります）</option></select><p class="hint">軽量は解像度と計算量を抑えます。無料T4では標準設定に数十分かかる場合があります。</p><label for="duration">再生時間</label><select id="duration"><option value="2">約2秒（14フレーム / 7fps）</option><option value="3">約3秒（14フレーム / 5fps）</option><option value="4">約4秒（14フレーム / 4fps）</option></select><p class="hint">14フレーム固定。時間は再生速度で調整します。長い動作を新たに生成する設定ではありません。</p>
 <label for="motion">動きの強さ <output id="motionValue">127</output></label><input id="motion" type="range" min="1" max="255" value="127"><p class="hint">大きいほど動きが増える傾向があります。指定どおりの動作は保証されません。</p>
 <label for="direction">動作指示（SVDでは使用できません）</label><textarea id="direction" disabled placeholder="文章による動作指示は、対応モデルを追加後に利用できます。"></textarea>
 <label for="seed">シード</label><input id="seed" type="number" min="0" max="4294967295" step="1" value="42"><p class="hint">選択した解像度に合わせます。縦写真も切らずに余白を付けます。</p><p id="settingsStatus" class="hint" role="status"></p><button id="resetSettings" class="secondary">設定を初期値に戻す</button>
-<button id="export" disabled>画像入りNotebookを保存</button><a id="saveNotebook" class="download" hidden>保存が始まらない場合はこちら</a><p id="status" role="status" aria-live="polite">画像を選ぶと保存できます。</p></section>
-<section class="card" id="kaggleGuide"><h2><span>03</span> Kaggleで実行</h2><a class="download" href="https://www.kaggle.com/code" target="_blank" rel="noopener noreferrer">Kaggleを開く ↗</a><p class="hint">別タブで開きます。この画面を閉じずに切り替えると、準備した画像を保てます。</p><ol><li>「画像入りNotebookを保存」ボタンで <b>.ipynb</b> をダウンロード。</li><li>New Notebook → File → Import Notebook → Browse Filesで、ダウンロードした <b>private-ai-studio.ipynb</b> を選択。</li><li>Notebookの公開範囲を <b>Private</b> に設定。画像を含むため公開しないでください。</li><li>Settingsで <b>GPU T4</b> と <b>Internet ON</b> を設定し、Run All。</li><li>最後のセルに表示されるMP4を保存。表示されない場合は右のOutputを更新し、<b>/kaggle/working → private-ai-studio.mp4 → ⋮ → Download</b>。下から選ぶと再生できます。</li><li>保存後はKaggle上部のセッションの <b>⋮ → Stop session</b> でGPUを停止。</li></ol><p class="hint">Kaggleへのログイン・GPU利用条件・空き枠が必要です。無料枠の範囲で利用してください。必要な本人確認やモデル利用条件の同意はご自身で行ってください。</p>
+<div class="automatic"><h2>画像から動画を生成</h2><p class="hint">自動経路での実生成は未検証です。中継サーバーの公開・初期認証が必要です。文章による動作指定はまだ利用できません。</p><details id="connectionDetails"><summary>初回の接続設定</summary><label for="relayUrl">中継サーバーのURL</label><input id="relayUrl" type="url" placeholder="https://your-relay.workers.dev" autocomplete="url"><label for="relayKey">専用の接続キー</label><input id="relayKey" type="password" autocomplete="off" placeholder="Kaggle APIトークンは入力しません"><p class="hint">接続キーはこのタブの間だけ記憶します。KaggleのAPIトークンはサーバー側で管理します。</p><button id="connectRelay" class="secondary">接続する</button></details><button id="generate" disabled>生成</button><p id="generationStatus" role="status" aria-live="polite">中継サーバー未接続です。初期設定が完了するまで自動生成は使えません。</p><button id="checkGeneration" class="secondary">生成状況を再確認</button><button id="fetchResult" class="secondary" hidden>動画を再取得</button><a id="jobNotebook" target="_blank" rel="noopener noreferrer" hidden>Kaggleで詳細を確認 ↗</a></div><h3>手動方式を使う場合</h3><button id="export" class="secondary" disabled>画像入りNotebookを保存</button><a id="saveNotebook" class="download" hidden>保存が始まらない場合はこちら</a><p id="status" role="status" aria-live="polite">画像を選ぶと保存できます。</p></section>
+<section class="card" id="kaggleGuide"><h2><span>03</span> Kaggleで実行（手動方式）</h2><a class="download" href="https://www.kaggle.com/code" target="_blank" rel="noopener noreferrer">Kaggleを開く ↗</a><p class="hint">別タブで開きます。この画面を閉じずに切り替えると、準備した画像を保てます。</p><ol><li>「画像入りNotebookを保存」ボタンで <b>.ipynb</b> をダウンロード。</li><li>New Notebook → File → Import Notebook → Browse Filesで、ダウンロードした <b>private-ai-studio.ipynb</b> を選択。</li><li>Notebookの公開範囲を <b>Private</b> に設定。画像を含むため公開しないでください。</li><li>Settingsで <b>GPU T4</b> と <b>Internet ON</b> を設定し、Run All。</li><li>最後のセルに表示されるMP4を保存。表示されない場合は右のOutputを更新し、<b>/kaggle/working → private-ai-studio.mp4 → ⋮ → Download</b>。下から選ぶと再生できます。</li><li>保存後はKaggle上部のセッションの <b>⋮ → Stop session</b> でGPUを停止。</li></ol><p class="hint">Kaggleへのログイン・GPU利用条件・空き枠が必要です。無料枠の範囲で利用してください。必要な本人確認やモデル利用条件の同意はご自身で行ってください。</p>
 <details><summary>スマホでメニューが見つからないとき</summary><p>Chromeの右上 ⋮ から「PC版サイト」に切り替え、KaggleのFileやSettingsを探してください。ブラウザのダウンロード一覧から <b>private-ai-studio.ipynb</b> を確認できます。</p></details><details class="checklist"><summary>実行前後の確認メモ</summary><p class="hint">自分でチェックするメモです。Kaggleの生成状況とは連動しません。再読み込みすると消えます。</p><label><input type="checkbox"> NotebookがPrivateになっている</label><label><input type="checkbox"> GPU T4とInternet ONを確認した</label><label><input type="checkbox"> MP4を端末に保存した</label><label><input type="checkbox"> GPUセッションを停止した</label></details><details><summary>エラーが出たら</summary><ul><li>GPUなし：AcceleratorをGPUに変更。</li><li>ダウンロード失敗：InternetをONに。401/403はモデルのアクセス権も確認。</li><li>メモリ不足：他のGPU処理を終了しセッションを再起動。</li><li>依存関係エラー：出力の最初のエラーを確認。Notebookを再インポートして実行。</li></ul></details>
 <h2><span>04</span> MP4を再生</h2><label class="upload" for="video">保存済みのMP4を選ぶ</label><input id="video" type="file" accept="video/mp4,.mp4"><video id="player" controls playsinline preload="metadata" hidden></video><a id="saveVideo" class="download" hidden>MP4を保存</a><p id="videoStatus" role="status"></p>
-<div class="capabilities"><h3>現在の対応範囲</h3><p>実装済み：画像プレビュー・Notebook作成・ローカルMP4再生／保存</p><p>検証済み：軽量設定でのT4実生成・MP4取得・Web再生／保存（テスト画像1件）<br>標準設定は生成完了まで未検証</p><p>未実装：画像生成・文章による動作指定・ワンタップGPU接続</p></div></section></div><footer>会社PC不要 · APIキー入力不要 · 画像をGitHubへ送信しない</footer></main><script>
+<div class="capabilities"><h3>現在の対応範囲</h3><p>実装済み：画像プレビュー・Notebook作成・ローカルMP4再生／保存</p><p>検証済み：軽量設定でのT4実生成・MP4取得・Web再生／保存（テスト画像1件）<br>標準設定は生成完了まで未検証</p><p>自動生成：サーバーと画面の接続処理を実装。サーバー公開・実API検証は未完了。<br>未実装：画像生成・文章による動作指定</p></div></section></div><footer>会社PC不要 · 画像を公開リポジトリへ送信しない</footer></main><script>
 (()=>{
 // Provider boundary: the static UI prepares a job; this adapter exports a Kaggle notebook.
 function validateJob(job) {
@@ -39,6 +41,139 @@ function makeNotebook(job) {
     cell('code',`import json, base64, io, os, time, traceback\nfrom pathlib import Path\nfrom PIL import Image, ImageOps\nfrom IPython.display import display, Video, FileLink\nimport torch\nfrom diffusers import StableVideoDiffusionPipeline\nfrom diffusers.utils import export_to_video\n\nCONFIG = json.loads(${JSON.stringify(JSON.stringify(config))})\nif not torch.cuda.is_available():\n    raise RuntimeError("GPUがありません。Settings → Accelerator → GPU T4に変更してください。")\nprint("GPU:", torch.cuda.get_device_name(0))\nOUTPUT = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()\nimage = Image.open(io.BytesIO(base64.b64decode(CONFIG.pop("image_base64"), validate=True)))\nimage = ImageOps.exif_transpose(image).convert("RGB")\nimage = ImageOps.pad(image, (CONFIG["width"], CONFIG["height"]), color=(16, 16, 16), method=Image.Resampling.LANCZOS)\ndisplay(image)\nprint("入力画像の読み込み完了:", image.size)\n`),
     cell('code',`started = time.time()\ntry:\n    pipe = StableVideoDiffusionPipeline.from_pretrained(\n        CONFIG["model"], torch_dtype=torch.float16, variant="fp16", low_cpu_mem_usage=True\n    )\n    pipe.enable_model_cpu_offload()\n    pipe.unet.enable_forward_chunking()\n    generator = torch.Generator(device="cpu").manual_seed(CONFIG["seed"])\n    with torch.inference_mode():\n        frames = pipe(\n            image, width=CONFIG["width"], height=CONFIG["height"], num_frames=CONFIG["frames"], num_inference_steps=CONFIG["steps"],\n            decode_chunk_size=1, generator=generator,\n            motion_bucket_id=CONFIG["motion"], noise_aug_strength=0.02,\n            fps=7\n        ).frames[0]\n    output_path = OUTPUT / "private-ai-studio.mp4"\n    export_to_video(frames, str(output_path), fps=CONFIG["fps"])\n    if not output_path.exists() or output_path.stat().st_size == 0:\n        raise RuntimeError("MP4ファイルが作成されませんでした。")\n    report = {**CONFIG, "status":"completed", "seconds":round(time.time()-started, 1), "gpu":torch.cuda.get_device_name(0), "torch":torch.__version__}\n    (OUTPUT / "generation-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))\n    print("生成完了", report)\n    display(Video(str(output_path), embed=True))\n    display(FileLink(str(output_path)))\nexcept Exception as exc:\n    report = {"status":"failed", "error":str(exc), "traceback":traceback.format_exc()}\n    (OUTPUT / "generation-error.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))\n    print("生成失敗。GPU設定・Internet・モデルアクセス権・メモリを確認してください。")\n    display(FileLink(str(OUTPUT / "generation-error.json")))\n    raise\nfinally:\n    if "pipe" in globals():\n        del pipe\n    import gc\n    gc.collect()\n    torch.cuda.empty_cache()\n`)
   ]};
+}
+
+// This controller never simulates progress or automatically retries a submission.
+function initGeneration({getJob,onVideo}) {
+  const $=id=>document.getElementById(id);
+  const keyName='private-ai-studio.relay-key.v1',endpointName='private-ai-studio.relay-url.v1',pendingName='private-ai-studio.pending.v1';
+  let endpoint='',key='',connected=false,busy=false,pending=null,timer=null,fetchingVideo=false;
+  const say=text=>$('generationStatus').textContent=text;
+  function savePending(value) {
+    pending=value;
+    try { if(value) localStorage.setItem(pendingName,JSON.stringify(value)); else localStorage.removeItem(pendingName); } catch {}
+  }
+  function update() {
+    $('generate').disabled=!connected || busy || Boolean(pending) || !$('preview').hasAttribute('src');
+    $('connectRelay').disabled=busy;
+    $('checkGeneration').disabled=!connected || !pending;
+    $('fetchResult').disabled=!connected || fetchingVideo;
+  }
+  function storeConnection() {
+    try { localStorage.setItem(endpointName,endpoint); } catch {}
+    try { sessionStorage.setItem(keyName,key); } catch {}
+  }
+  async function api(path,body) {
+    const response=await fetch(endpoint+path,{
+      method:body?'POST':'GET',headers:{Authorization:`Bearer ${key}`,...(body?{'Content-Type':'application/json'}:{})},
+      ...(body?{body:JSON.stringify(body)}:{}),cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30000)
+    });
+    if(path.endsWith('/video') && response.ok) return response.blob();
+    let data;
+    try { data=await response.json(); } catch { throw new Error('サーバーの応答を読み取れません。再送せず、状態を確認してください。'); }
+    if(!response.ok) {
+      const error=new Error(data.message || 'サーバーに接続できません。');
+      error.status=response.status;error.data=data;throw error;
+    }
+    return data;
+  }
+  function resultLink(url) {
+    $('jobNotebook').hidden=true;
+    try {
+      const parsed=new URL(url);
+      if(parsed.origin==='https://www.kaggle.com' && parsed.pathname.startsWith('/code/')) {
+        $('jobNotebook').href=parsed.href;$('jobNotebook').hidden=false;
+      }
+    } catch {}
+  }
+  function schedule() { clearTimeout(timer); timer=setTimeout(()=>check().catch(()=>{}),15000); }
+  async function accept(record) {
+    if(!record || record.id!==pending?.id) throw new Error('生成IDを確認できません。');
+    resultLink(record.notebookUrl);
+    const messages={submitting:'Kaggleへ送信中です。',unknown:'送信結果を確認中です。重複実行を避けるため再送しません。',queued:'Kaggleの実行待ちです。',running:'Kaggleで生成中です。',finishing:'出力の確認待ちです。',completed:'MP4の出力を確認しました。動画を取得します。',failed:'Kaggleで生成が失敗または拒否されました。'};
+    say(record.message || messages[record.status] || '生成状況を確認しています。');
+    $('fetchResult').hidden=record.status!=='completed';
+    if(record.status==='completed') {
+      busy=false;update();
+      await download();
+    } else if(record.status==='failed') { savePending(null);busy=false;clearTimeout(timer);update(); }
+    else { busy=false;update();schedule(); }
+  }
+  async function check() {
+    if(!connected || !pending) return;
+    try { await accept(await api(`/v1/jobs/${pending.id}`)); }
+    catch(error) {
+      busy=false;
+      if(error.status===404) { clearTimeout(timer);savePending(null);say('サーバーに生成記録がありません。送信前の状態に戻りました。'); }
+      else if(error.status===401) { connected=false;clearTimeout(timer);say('接続キーが失効または不一致です。再接続すると生成状況を確認できます。'); }
+      else { say(`${error.message || '通信が切れました。'} 生成を再送せず、15秒後に状態を再確認します。`);schedule(); }
+      update();
+    }
+  }
+  async function download() {
+    if(!pending || fetchingVideo) return;
+    fetchingVideo=true;update();
+    try {
+      const blob=await api(`/v1/jobs/${pending.id}/video`);
+      if(!blob.size) throw new Error('動画が空です。');
+      const bytes=new Uint8Array(await blob.slice(0,12).arrayBuffer());
+      if(String.fromCharCode(...bytes.slice(4,8))!=='ftyp') throw new Error('取得したファイルがMP4形式ではありません。');
+      onVideo(blob);
+      say('MP4を取得しました。下のプレーヤーで再生・保存できます。');
+      savePending(null);$('fetchResult').hidden=true;clearTimeout(timer);
+    } catch(error) { say(`動画を取得できませんでした。${error.message} 「動画を再取得」で再試行できます。`); }
+    finally { fetchingVideo=false;update(); }
+  }
+  async function connect() {
+    clearTimeout(timer); connected=false;busy=true;update();
+    try {
+      const url=new URL($('relayUrl').value.trim());
+      if(url.protocol!=='https:' || url.username || url.password || url.search || url.hash || !['','/'].includes(url.pathname)) throw new Error('中継サーバーのHTTPSのURLを入力してください。');
+      const nextEndpoint=url.origin;
+      if(pending && pending.endpoint!==nextEndpoint) throw new Error('確認中の生成と同じサーバーに接続してください。');
+      const nextKey=$('relayKey').value.trim() || (nextEndpoint===endpoint ? key : '');
+      if(nextKey.startsWith('KGAT')) throw new Error('ここにはKaggle APIトークンではなく、中継サーバー専用の接続キーを入力してください。');
+      if(nextKey.length<32) throw new Error('専用の接続キーを入力してください。KaggleのAPIトークンはここに入力しません。');
+      endpoint=nextEndpoint;key=nextKey;
+      const info=await api('/v1/connection');
+      if(info.provider!=='kaggle-svd' || info.configured!==true) throw new Error('対応する中継サーバーを確認できません。');
+      connected=true;storeConnection();
+      $('relayKey').value='';$('connectionDetails').open=false;
+      say('中継サーバーに接続しました。Kaggleの認証・GPU利用権限は生成送信時に確認します。');
+    } catch(error) { say(error.message || '接続できませんでした。URLと接続キーを確認してください。'); }
+    finally { busy=false;update(); }
+    if(connected && pending) await check();
+  }
+  $('connectRelay').addEventListener('click',connect);
+  $('fetchResult').addEventListener('click',download);
+  $('checkGeneration').addEventListener('click',check);
+  $('generate').addEventListener('click',async()=>{
+    if(!connected || busy || pending) return;
+    let job;
+    try { job=getJob(); } catch(error) { say(error.message);return; }
+    busy=true;update();
+    const requestId=crypto.randomUUID();
+    savePending({id:requestId,endpoint});
+    say('画像と設定を送信しています。この画像は中継サーバー経由でKaggleのPrivate Notebookに送られます。');
+    try { await accept(await api('/v1/jobs',{requestId,job})); }
+    catch(error) {
+      if(error.data?.activeJob) { savePending({id:error.data.activeJob.id,endpoint});await accept(error.data.activeJob); }
+      else if([400,401,403,413].includes(error.status)) { savePending(null);say(error.message);if(error.status===404) { clearTimeout(timer);savePending(null);say('サーバーに生成記録がありません。送信前の状態に戻りました。'); }
+      else if(error.status===401) connected=false; }
+      else { say('送信結果を確認できません。重複実行を避けるため再送せず、生成状況を確認します。');schedule(); }
+    } finally { busy=false;update(); }
+  });
+  const observer=new MutationObserver(update);observer.observe($('preview'),{attributes:true,attributeFilter:['src']});
+  try { $('relayUrl').value=localStorage.getItem(endpointName)||''; } catch {}
+  try {
+    const stored=JSON.parse(localStorage.getItem(pendingName));
+    if(stored && /^[a-f0-9-]{36}$/.test(stored.id) && typeof stored.endpoint==='string') pending=stored;
+  } catch {}
+  try { const storedKey=sessionStorage.getItem(keyName);if(storedKey) $('relayKey').value=storedKey; } catch {}
+  if(pending) say('前回の生成記録があります。同じ中継サーバーに接続すると状況を確認します。');
+  update();
+  if($('relayUrl').value && $('relayKey').value) connect();
+  return {update};
 }
 
 const $ = id => document.getElementById(id);
@@ -159,6 +294,23 @@ $('player').addEventListener('loadedmetadata', () => {
   $('videoStatus').textContent = `MP4の再生準備ができました。${player.videoWidth} × ${player.videoHeight} · ${Number.isFinite(player.duration) ? player.duration.toFixed(1) + '秒' : '再生時間不明'}`;
 });
 $('player').addEventListener('error', () => { $('videoStatus').textContent = 'この動画を再生できません。MP4の破損または未対応コーデックを確認してください。'; });
+
+initGeneration({
+  getJob: () => {
+    const job={provider:'kaggle-svd',imageBase64,preset:$('preset').value,duration:Number($('duration').value),motion:Number($('motion').value),seed:Number($('seed').value)};
+    validateJob(job);
+    if(job.preset!=='light') throw new Error('自動生成は軽量設定を選んでください。標準設定の自動実行は未検証です。');
+    return job;
+  },
+  onVideo: blob => {
+    $('player').pause();
+    if(videoUrl) URL.revokeObjectURL(videoUrl);
+    videoUrl=URL.createObjectURL(blob);
+    $('player').src=videoUrl;$('player').hidden=false;
+    $('saveVideo').href=videoUrl;$('saveVideo').download='private-ai-studio.mp4';$('saveVideo').hidden=false;
+    $('videoStatus').textContent='Kaggleから取得したMP4を確認中です。';
+  }
+});
 
 })();
 </script></body></html>
