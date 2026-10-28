@@ -6,7 +6,44 @@ function clearNotebook() {
   notebookUrl = null;
   $('saveNotebook').hidden = true; $('saveNotebook').removeAttribute('href');
 }
-for (const id of ['duration','motion','seed','preset']) $(id).addEventListener('input', clearNotebook);
+const settingDefaults = {preset:'light',duration:'2',motion:'127',seed:'42'};
+const settingsKey = 'private-ai-studio.settings.v1';
+function validSettings(value) {
+  if (!value || typeof value !== 'object') return false;
+  return ['light','standard'].includes(value.preset) && ['2','3','4'].includes(value.duration)
+    && /^\d+$/.test(value.motion) && Number(value.motion) >= 1 && Number(value.motion) <= 255
+    && /^\d+$/.test(value.seed) && Number(value.seed) >= 0 && Number(value.seed) <= 4294967295;
+}
+function applySettings(value) {
+  for (const id of Object.keys(settingDefaults)) $(id).value = value[id];
+  $('motionValue').textContent = $('motion').value;
+}
+function saveSettings() {
+  const value = Object.fromEntries(Object.keys(settingDefaults).map(id => [id,$(id).value]));
+  if (!validSettings(value)) {
+    $('settingsStatus').textContent = 'シードは0〜4294967295の整数を入力してください。未入力・不正な設定は保存しません。';
+    return;
+  }
+  try {
+    localStorage.setItem(settingsKey,JSON.stringify(value));
+    $('settingsStatus').textContent = '設定をこのブラウザに保存しました。画像・動画は保存しません。';
+  } catch {
+    $('settingsStatus').textContent = 'ブラウザに設定を保存できません。この画面ではそのまま使えます。';
+  }
+}
+try {
+  const saved = JSON.parse(localStorage.getItem(settingsKey));
+  if (validSettings(saved)) {
+    applySettings(saved);
+    $('settingsStatus').textContent = '前回の設定を復元しました。画像はもう一度選んでください。';
+  } else $('settingsStatus').textContent = '変更した設定だけをこのブラウザに保存します。画像・動画は保存しません。';
+} catch {
+  $('settingsStatus').textContent = '設定を復元できなかったため初期値で開始しました。';
+}
+for (const id of Object.keys(settingDefaults)) $(id).addEventListener('input', () => { clearNotebook(); saveSettings(); });
+$('resetSettings').addEventListener('click', () => {
+  applySettings(settingDefaults); clearNotebook(); saveSettings();
+});
 function clearImage() {
   selectionVersion++;
   imageBase64 = null;
@@ -59,7 +96,7 @@ $('export').addEventListener('click', () => {
     notebookUrl = URL.createObjectURL(new Blob([JSON.stringify(notebook,null,2)],{type:'application/x-ipynb+json'}));
     $('saveNotebook').href = notebookUrl; $('saveNotebook').download = 'private-ai-studio.ipynb';
     $('saveNotebook').hidden = false; $('saveNotebook').click();
-    $('status').textContent = 'Notebookの保存を開始しました。まだ動画は生成されていません。KaggleへPrivateでインポートしてください。';
+    $('status').textContent = 'Notebookの保存を開始しました。Chromeのダウンロード一覧を確認し、次の「Kaggleを開く」へ進んでください。まだ動画は生成されていません。';
   } catch(error) { $('status').textContent = error.message; }
 });
 $('video').addEventListener('change', event => {
@@ -73,6 +110,10 @@ $('video').addEventListener('change', event => {
   videoUrl = URL.createObjectURL(file);
   $('player').src = videoUrl; $('player').hidden = false;
   $('saveVideo').href = videoUrl; $('saveVideo').download = file.name; $('saveVideo').hidden = false;
-  $('videoStatus').textContent = 'この端末のMP4を読み込みました。';
+  $('videoStatus').textContent = 'MP4を確認中です。';
+});
+$('player').addEventListener('loadedmetadata', () => {
+  const player = $('player');
+  $('videoStatus').textContent = `MP4の再生準備ができました。${player.videoWidth} × ${player.videoHeight} · ${Number.isFinite(player.duration) ? player.duration.toFixed(1) + '秒' : '再生時間不明'}`;
 });
 $('player').addEventListener('error', () => { $('videoStatus').textContent = 'この動画を再生できません。MP4の破損または未対応コーデックを確認してください。'; });
