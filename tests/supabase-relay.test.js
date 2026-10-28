@@ -10,8 +10,9 @@ const digest=async s=>Buffer.from(await crypto.subtle.digest('SHA-256',new TextE
 async function fixture(configured=true) {
  const records=new Map();let active=null,configuredValue=configured;
  let chain=Promise.resolve();const lock=fn=>{const p=chain.then(fn);chain=p.catch(()=>{});return p;};
- const db={config:async()=>({token_hash:await digest(key),kaggle_secret_id:configuredValue?'secret-id':null,kaggle_username:'owner'}),credentials:async()=>({kaggle_username:'owner',token:'fake-test-provider-token'}),
+ const db={authorizedDevice:async()=>false,pair:async()=>false,config:async()=>({token_hash:await digest(key),kaggle_secret_id:configuredValue?'secret-id':null,kaggle_username:'owner'}),credentials:async()=>({kaggle_username:'owner',token:'fake-test-provider-token'}),
   setup:async(username,token)=>{assert.equal(username,'owner');assert.ok(token.startsWith('KGAT'));configuredValue=true;return true;},
+  latest:async()=>structuredClone([...records.values()].at(-1)),
   get:async id=>structuredClone(records.get(id)),
   claim:record=>lock(async()=>{if(records.has(record.id))return {prior:structuredClone(records.get(record.id))};if(active)return {active:structuredClone(records.get(active))};records.set(record.id,structuredClone(record));active=record.id;return {created:true};}),
   save:async record=>{records.set(record.id,structuredClone(record));if(['failed','completed'].includes(record.status)&&active===record.id)active=null;},
@@ -19,7 +20,7 @@ async function fixture(configured=true) {
  const provider={submit:async()=>1,status:async()=> 'running',output:async()=> 'https://storage.googleapis.com/result.mp4'};
  const handler=createHandler(db,{providerFactory:()=>provider});
  const call=(path,body,auth=key)=>handler(new Request('https://relay.test/functions/v1/studio-relay'+path,{method:body?'POST':'GET',headers:{Origin:'https://kyan-kyan.github.io',Authorization:'Bearer '+auth,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));
- return {call,provider,records};
+ return {call,provider,records,db};
 }
 test('Supabase relay exposes health but refuses private routes without owner authentication',async()=>{
  const {call}=await fixture();assert.equal((await call('/health',null,'')).status,200);assert.equal((await call('/v1/connection',null,'')).status,401);
@@ -46,4 +47,22 @@ test('Supabase completed status requires MP4 and can recover after output availa
  const {call,provider}=await fixture();await call('/v1/jobs',{requestId:id,job});provider.status=async()=> 'completed';provider.output=async()=>{throw new ProviderError('OUTPUT_MISSING','waiting');};
  assert.equal((await (await call('/v1/jobs/'+id)).json()).status,'finishing');
  provider.output=async()=> 'https://storage.googleapis.com/result.mp4';assert.equal((await (await call('/v1/jobs/'+id)).json()).status,'completed');
+});
+
+test('pairing issues a device key once and private routes recognize it',async()=>{
+ const {call,db}=await fixture();const devices=new Set();let used=false;
+ db.pair=async(codeHash,deviceHash)=>{if(used || codeHash!==await digest('12345678'))return false;used=true;devices.add(deviceHash);return true;};
+ db.authorizedDevice=async tokenHash=>devices.has(tokenHash);
+ assert.equal((await call('/v1/pair',{code:'12'},'')).status,400);
+ const paired=await (await call('/v1/pair',{code:'12345678'},'')).json();assert.match(paired.key,/^[a-f0-9]{64}$/);
+ assert.equal((await call('/v1/connection',null,paired.key)).status,200);
+ assert.equal((await call('/v1/pair',{code:'12345678'},'')).status,401);
+ devices.clear();assert.equal((await call('/v1/connection',null,paired.key)).status,401);
+});
+
+test('latest result is authenticated and points to an existing generation, never a new run',async()=>{
+ const {call,provider}=await fixture();let runs=0;provider.submit=async()=>{runs++;return 1;};
+ assert.equal((await (await call('/v1/jobs/latest')).json()).job,null);
+ await call('/v1/jobs',{requestId:id,job});
+ const data=await (await call('/v1/jobs/latest')).json();assert.equal(data.job.id,id);assert.equal(runs,1);
 });

@@ -28,11 +28,20 @@ export function createHandler(db,{providerFactory=credentials=>new KaggleProvide
     else {
       const config=await db.config();
       if(!config?.token_hash) response=json({error:'NOT_CONFIGURED',message:'中継サーバーの初期設定中です。'},503);
+      else if(request.method==='POST' && path==='/v1/pair') {
+        let data;try {data=await readJson(request,512);}catch {return withCors(json({error:'INVALID_CODE',message:'8桁の接続コードを入力してください。'},400),cors);}
+        if(!/^\d{8}$/.test(data?.code||'')) response=json({error:'INVALID_CODE',message:'8桁の接続コードを入力してください。'},400);
+        else {
+          const deviceKey=Array.from(crypto.getRandomValues(new Uint8Array(32))).map(n=>n.toString(16).padStart(2,'0')).join('');
+          if(await db.pair(await hash(data.code),await hash(deviceKey))) response=json({key:deviceKey,expiresInDays:90});
+          else response=json({error:'PAIR_DENIED',message:'コードが使えません。入力内容・有効期限・使用済みでないかを確認してください。'},401);
+        }
+      }
       else {
         const auth=request.headers.get('Authorization')||'';
         const actual=await hash(auth.startsWith('Bearer ')?auth.slice(7):'');
         let difference=0;for(let i=0;i<64;i++) difference |= actual.charCodeAt(i) ^ config.token_hash.charCodeAt(i);
-        if(difference!==0) response=json({error:'AUTH_REQUIRED',message:'個人用の接続設定を取り込んでください。'},401);
+        if(difference!==0 && !await db.authorizedDevice(actual)) response=json({error:'AUTH_REQUIRED',message:'個人用の接続設定を取り込んでください。'},401);
         else if(request.method==='GET' && path==='/v1/connection') response=json({provider:'kaggle-svd',configured:Boolean(config.kaggle_secret_id),authenticated:true,needsSetup:!config.kaggle_secret_id,username:config.kaggle_username,liveGenerationVerified:false});
         else if(request.method==='POST' && path==='/v1/setup') {
           let data;try {data=await readJson(request,8192);}catch(e){return withCors(json({error:'INVALID_REQUEST',message:e.message},400),cors);}
@@ -44,7 +53,8 @@ export function createHandler(db,{providerFactory=credentials=>new KaggleProvide
           const credentials=await db.credentials();
           if(!credentials?.token) return withCors(json({error:'KAGGLE_NOT_CONFIGURED',message:'KaggleのAPI認証を読み込めません。'},503),cors);
           const provider=providerFactory(credentials);
-          if(request.method==='POST' && path==='/v1/jobs') {
+          if(request.method==='GET' && path==='/v1/jobs/latest') {const record=await db.latest();response=json({job:record?publicJob(record,config.kaggle_username):null});}
+          else if(request.method==='POST' && path==='/v1/jobs') {
             let data;try {data=await readJson(request);}catch(e){return withCors(json({error:'INVALID_REQUEST',message:e.message},400),cors);}
             const {requestId,job}=data||{};
             if(!ID.test(requestId||'')) response=json({error:'INVALID_ID',message:'生成IDが正しくありません。'},400);

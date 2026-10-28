@@ -3,6 +3,21 @@
 export class StudioDatabase {
   constructor(sql) { this.sql=sql; }
   async config() { return (await this.sql`select * from studio_private.config where singleton=true`)[0]; }
+  async authorizedDevice(tokenHash) {
+    const rows=await this.sql`select 1 from studio_private.device_keys where token_hash=${tokenHash} and expires_at>now()`;
+    return rows.length===1;
+  }
+  async pair(codeHash,deviceHash) {
+    return this.sql.begin(async tx=>{
+      const [config]=await tx`select pair_code_hash,pair_expires_at,pair_attempts from studio_private.config where singleton=true for update`;
+      if(!config?.pair_code_hash || config.pair_attempts>=10 || Date.parse(config.pair_expires_at)<=Date.now()) return false;
+      await tx`update studio_private.config set pair_attempts=pair_attempts+1 where singleton=true`;
+      if(config.pair_code_hash!==codeHash) return false;
+      await tx`insert into studio_private.device_keys(token_hash) values(${deviceHash})`;
+      await tx`update studio_private.config set pair_code_hash=null,pair_expires_at=null,pair_attempts=0 where singleton=true`;
+      return true;
+    });
+  }
   async credentials() {
     return (await this.sql`select c.kaggle_username, v.decrypted_secret as token from studio_private.config c join vault.decrypted_secrets v on v.id=c.kaggle_secret_id where c.singleton=true`)[0];
   }
@@ -17,6 +32,7 @@ export class StudioDatabase {
       return true;
     });
   }
+  async latest() { return (await this.sql`select record from studio_private.jobs order by (record->>'createdAt') desc limit 1`)[0]?.record; }
   async get(id) { return (await this.sql`select record from studio_private.jobs where id=${id}::uuid`)[0]?.record; }
   async claim(record) {
     // Commit the job BEFORE calling Kaggle. A network error must not roll back

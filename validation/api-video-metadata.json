@@ -1,0 +1,25 @@
+{
+  "job_id": "6a7474a8-9af3-4b2f-b8ff-e56adb7204be",
+  "provider": "kaggle-svd",
+  "path": "GitHub Pages -> Supabase -> Kaggle API -> Supabase MP4 download",
+  "generation_seconds": 433.4,
+  "total_runtime_seconds": 564.6,
+  "sha256": "2110a673bcd2bd435b892f61aca89638a55ee67ec2bf5c6385ee442171cbe807",
+  "ffprobe": {
+    "programs": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 576,
+        "height": 320,
+        "r_frame_rate": "5/1",
+        "nb_frames": "14"
+      }
+    ],
+    "format": {
+      "duration": "2.800000",
+      "size": "18092"
+    }
+  },
+  "test_images": 1
+}

@@ -66,7 +66,7 @@ test('Kaggle adapter uses pinned version, private T4 run and no automatic retry'
  await provider.submit('pas-test',{cells:[{source:['a\n','b']} ]});
  assert.equal(calls[0].body.isPrivate,true);assert.equal(calls[0].body.machineShape,'NvidiaTeslaT4');assert.equal(calls[0].body.sessionTimeoutSeconds,1800);
  assert.equal(calls[0].body.enableInternet,true);assert.equal(JSON.parse(calls[0].body.text).cells[0].source,'a\nb');
- assert.equal(await provider.status({slug:'pas-test',version:2}),'completed');assert.equal(calls[1].body.versionLabel,'2');
+ assert.equal(await provider.status({slug:'pas-test',version:2}),'completed');assert.equal(calls[1].body.versionLabel,'v2');
 });
 test('signed file downloads never receive Kaggle credentials and reject offsite redirects',async()=>{
  const calls=[];

@@ -5,3 +5,5 @@
 .checklist label{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:400;min-height:44px}.checklist input{width:22px;height:22px;flex-shrink:0;accent-color:#b8f5cc}#resetSettings{font-size:13px;padding:10px;margin:0 0 18px}li{overflow-wrap:anywhere}
 
 .automatic{border:1px solid #4c665c;border-radius:14px;padding:18px;margin:24px 0}.automatic h2{margin:0 0 8px}.automatic input{font:inherit;max-width:100%;border:1px solid #475169;background:#0e1420;color:inherit;padding:12px}.automatic p{overflow-wrap:anywhere}#generationStatus{font-size:13px}#jobNotebook{display:block;margin-top:12px}
+
+.device-connect input[type=text]{font:inherit;background:#0e1420;color:inherit;border:1px solid #475169;padding:12px;letter-spacing:.2em}.remember{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:400;min-height:44px}.remember input{width:22px;height:22px;flex-shrink:0;accent-color:#b8f5cc}#connectionStatus,#importStatus{font-size:13px;overflow-wrap:anywhere}

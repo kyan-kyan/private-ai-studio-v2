@@ -3,7 +3,7 @@ export function initGeneration({getJob,onVideo}) {
   const $=id=>document.getElementById(id);
   const defaultEndpoint='https://rhjhrwfvlxuijtjoalzb.supabase.co/functions/v1/studio-relay';
   const keyName='private-ai-studio.relay-key.v1',endpointName='private-ai-studio.relay-url.v1',pendingName='private-ai-studio.pending.v1';
-  let endpoint='',key='',connected=false,ready=false,busy=false,pending=null,timer=null,fetchingVideo=false;
+  let endpoint='',key='',connected=false,ready=false,busy=false,pending=null,timer=null,fetchingVideo=false,otherJob=null,latestJob=null;
   const say=text=>$('generationStatus').textContent=text;
   function savePending(value) {
     pending=value;
@@ -12,6 +12,9 @@ export function initGeneration({getJob,onVideo}) {
   function update() {
     $('generate').disabled=!connected || !ready || busy || Boolean(pending) || !$('preview').hasAttribute('src');
     $('connectRelay').disabled=busy;
+    $('pairRelay').disabled=busy;
+    $('viewLatest').disabled=busy || Boolean(pending);
+    $('pairingPanel').hidden=connected;
     $('checkGeneration').disabled=!connected || !pending;
     $('fetchResult').disabled=!connected || fetchingVideo;
     $('saveKaggle').disabled=!connected || busy;
@@ -19,6 +22,7 @@ export function initGeneration({getJob,onVideo}) {
   function storeConnection() {
     try { localStorage.setItem(endpointName,endpoint); } catch {}
     try { sessionStorage.setItem(keyName,key); } catch {}
+    try { if($('rememberConnection').checked!==false) localStorage.setItem(keyName,key); else localStorage.removeItem(keyName); } catch {}
   }
   async function api(path,body) {
     const response=await fetch(endpoint+path,{
@@ -83,6 +87,7 @@ export function initGeneration({getJob,onVideo}) {
   }
   async function connect() {
     clearTimeout(timer); connected=false;busy=true;update();
+    $('connectionStatus').textContent='サーバーへ接続しています…';
     try {
       const url=new URL($('relayUrl').value.trim());
       if(url.protocol!=='https:' || url.username || url.password || url.search || url.hash || !(['','/'].includes(url.pathname) || /^\/functions\/v1\/studio-relay\/?$/.test(url.pathname))) throw new Error('中継サーバーのHTTPSのURLを入力してください。');
@@ -98,22 +103,45 @@ export function initGeneration({getJob,onVideo}) {
       $('kaggleSetup').hidden=info.authenticated!==true;$('kaggleSetup').open=!ready;
       if(info.username) $('kaggleUsername').value=info.username;
       $('relayKey').value='';$('connectionDetails').open=false;
-      say(ready ? '中継サーバーに接続しました。生成できます。KaggleのGPU利用権限は送信時に確認します。' : '中継サーバーに接続しました。下の初回設定でKaggleのAPIトークンを登録してください。');
-    } catch(error) { say(error.message || '接続できませんでした。URLと接続キーを確認してください。'); }
+      const message=ready ? 'この端末は接続済みです。写真を選んで生成できます。' : 'サーバーに接続しました。Kaggleの初回認証の登録が必要です。';
+      $('connectionStatus').textContent=message;say(message);
+      if(ready){try{const result=await api('/v1/jobs/latest');latestJob=result.job || null;$('viewLatest').hidden=!latestJob;}catch{latestJob=null;}}
+    } catch(error) { const message=error instanceof TypeError ? '通信できませんでした。ネット接続を確認して、もう一度接続してください。' : error.message || '接続できませんでした。';$('connectionStatus').textContent=message;say(message);
+      if(ready){try{const result=await api('/v1/jobs/latest');latestJob=result.job || null;$('viewLatest').hidden=!latestJob;}catch{latestJob=null;}} }
     finally { busy=false;update(); }
     if(connected && pending) await check();
+    return connected;
   }
   $('connectionFile').addEventListener('change',async event=>{
     const file=event.target.files[0];
     if(!file) return;
+    $('importStatus').textContent='接続ファイルを読み込んでいます…';
     try {
       if(file.size>4096) throw new Error('接続ファイルが大きすぎます。');
       const data=JSON.parse(await file.text());
       if(data.schema!=='private-ai-studio-connection-v1' || data.endpoint!==defaultEndpoint || !/^[a-f0-9]{64}$/.test(data.key||'')) throw new Error('このアプリ用の接続ファイルを選んでください。');
       $('relayUrl').value=data.endpoint;$('relayKey').value=data.key;
+      $('importStatus').textContent='ファイルを読み込みました。サーバーへ接続中です…';
+      const ok=await connect();
+      $('importStatus').textContent=ok ? `${file.name || '接続ファイル'}：読み込み・接続が完了しました。` : 'ファイルは読み込みましたが、サーバーへの接続に失敗しました。上の接続状態を確認してください。';
+    }catch(error){$('importStatus').textContent=error.message || '接続ファイルを読み込めません。';say($('importStatus').textContent);event.target.value='';}
+  });
+  $('rememberConnection').addEventListener('change',()=>{if(connected) storeConnection();});
+  $('pairRelay').addEventListener('click',async()=>{
+    if(busy) return;
+    const code=$('pairCode').value.trim();
+    if(!/^\d{8}$/.test(code)) {$('connectionStatus').textContent='8桁の接続コードを入力してください。';return;}
+    if(pending && pending.endpoint!==defaultEndpoint) {$('connectionStatus').textContent='前回の生成状況を確認してから接続先を変更してください。';return;}
+    busy=true;update();$('connectionStatus').textContent='接続コードを確認しています…';
+    try {
+      endpoint=defaultEndpoint;
+      const result=await api('/v1/pair',{code});
+      if(!/^[a-f0-9]{64}$/.test(result.key||'')) throw new Error('接続情報を取得できませんでした。');
+      key=result.key;storeConnection();
+      $('relayUrl').value=endpoint;$('relayKey').value=key;
       await connect();
-    }catch(error){say(error.message || '接続ファイルを読み込めません。');}
-    finally {event.target.value='';}
+    }catch(error){$('connectionStatus').textContent=error instanceof TypeError?'通信できませんでした。もう一度接続してください。':error.message || '接続コードを確認できません。';}
+    finally {$('pairCode').value='';busy=false;update();}
   });
   $('saveKaggle').addEventListener('click',async()=>{
     if(!connected || busy || pending) return;
@@ -129,6 +157,8 @@ export function initGeneration({getJob,onVideo}) {
   $('connectRelay').addEventListener('click',connect);
   $('fetchResult').addEventListener('click',download);
   $('checkGeneration').addEventListener('click',check);
+  $('viewLatest').addEventListener('click',async()=>{if(!latestJob || pending)return;savePending({id:latestJob.id,endpoint});say('前回の生成を確認しています。今回の写真は送信していません。');await check();});
+  $('resumeOther').addEventListener('click',async()=>{if(!otherJob)return;savePending(otherJob);otherJob=null;$('resumeOther').hidden=true;await check();});
   $('generate').addEventListener('click',async()=>{
     if(!connected || !ready || busy || pending) return;
     let job;
@@ -139,9 +169,8 @@ export function initGeneration({getJob,onVideo}) {
     say('画像と設定を送信しています。この画像は中継サーバー経由でKaggleのPrivate Notebookに送られます。');
     try { await accept(await api('/v1/jobs',{requestId,job})); }
     catch(error) {
-      if(error.data?.activeJob) { savePending({id:error.data.activeJob.id,endpoint});await accept(error.data.activeJob); }
-      else if([400,401,403,413].includes(error.status)) { savePending(null);say(error.message);if(error.status===404) { clearTimeout(timer);savePending(null);say('サーバーに生成記録がありません。送信前の状態に戻りました。'); }
-      else if(error.status===401) connected=false; }
+      if(error.data?.activeJob) { savePending(null);otherJob={id:error.data.activeJob.id,endpoint};$('resumeOther').hidden=false;say('別の生成が実行中です。今回の写真は送信していません。「前の生成を確認」から、以前の結果を確認できます。'); }
+      else if([400,401,403,413].includes(error.status)) { savePending(null);say(error.message);if(error.status===401) connected=false; }
       else { say('送信結果を確認できません。重複実行を避けるため再送せず、生成状況を確認します。');schedule(); }
     } finally { busy=false;update(); }
   });
@@ -151,7 +180,7 @@ export function initGeneration({getJob,onVideo}) {
     const stored=JSON.parse(localStorage.getItem(pendingName));
     if(stored && /^[a-f0-9-]{36}$/.test(stored.id) && typeof stored.endpoint==='string') pending=stored;
   } catch {}
-  try { const storedKey=sessionStorage.getItem(keyName);if(storedKey) $('relayKey').value=storedKey; } catch {}
+  try { const storedKey=localStorage.getItem(keyName)||sessionStorage.getItem(keyName);if(storedKey) $('relayKey').value=storedKey; } catch {}
   if(pending) say('前回の生成記録があります。同じ中継サーバーに接続すると状況を確認します。');
   update();
   if($('relayUrl').value && $('relayKey').value) connect();

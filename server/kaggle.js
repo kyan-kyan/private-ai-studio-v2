@@ -15,9 +15,10 @@ export class KaggleProvider {
     } catch { throw new ProviderError('UPSTREAM_UNCERTAIN','Kaggleとの通信結果を確認できません。再送せず、状態確認を続けてください。',true); }
     let data;
     try { data = await response.json(); } catch { throw new ProviderError('UPSTREAM_FORMAT','Kaggleから予期しない応答がありました。',true); }
-    const status = Math.max(response.status,Number(data.code)||0);
+    const details = data.error && typeof data.error==='object' ? data.error : null;
+    const status = Math.max(response.status,Number(data.code || details?.code)||0);
     if (!response.ok || status >= 400 || data.error) {
-      const reason = String(data.message || data.error || '');
+      const reason = String(data.message || details?.message || (typeof data.error==='string' ? data.error : ''));
       if (reason.includes('kernelSessions.enableInternet')) throw new ProviderError('INTERNET_DENIED','KaggleがInternet利用を拒否しました。Kaggleの本人確認・Internet設定・APIトークンの権限を確認してください。');
       if (status === 401 || status === 403) throw new ProviderError('KAGGLE_AUTH','Kaggleの認証または利用権限を確認してください。');
       if (status === 404) throw new ProviderError('KAGGLE_NOT_FOUND','Kaggleに送信先のNotebookが見つかりません。');
@@ -40,7 +41,7 @@ export class KaggleProvider {
     return data.versionNumber;
   }
   query(record) {
-    return {userName:this.env.KAGGLE_USERNAME,kernelSlug:record.slug,...(record.version ? {versionLabel:String(record.version)} : {})};
+    return {userName:this.env.KAGGLE_USERNAME,kernelSlug:record.slug,...(record.version ? {versionLabel:`v${record.version}`} : {})};
   }
   async status(record) {
     const data = await this.rpc('GetKernelSessionStatus',this.query(record));
