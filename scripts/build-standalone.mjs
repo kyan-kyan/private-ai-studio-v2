@@ -8,8 +8,8 @@ const notebook=fs.readFileSync(path.join(root,'notebook.js'),'utf8').replace(/^e
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8').replace(/^import \{makeNotebook\} from '\.\/notebook\.js';\n/,'');
 const js=notebook+'\n'+app;
 if (/<\/script/i.test(js)) throw new Error('Script closing tag must be escaped before embedding');
-html=html.replace('<link rel="stylesheet" href="style.css">',()=>'<style>'+css+'</style>');
-html=html.replace('<script type="module" src="app.js"></script>',()=>'<script>\n(()=>{\n'+js+'\n})();\n</script>');
+html=html.replace(/<link rel="stylesheet" href="style\.css(?:\?[^"]*)?">/,()=>'<style>'+css+'</style>');
+html=html.replace(/<script type="module" src="app\.js(?:\?[^"]*)?"><\/script>/,()=>'<script>\n(()=>{\n'+js+'\n})();\n</script>');
 if (/src="app\.js"|href="style\.css"/.test(html)) throw new Error('External assets remain');
 fs.mkdirSync(path.join(root,'standalone'),{recursive:true});
 fs.writeFileSync(path.join(root,'standalone','index.html'),html);
