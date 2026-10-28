@@ -6,7 +6,7 @@ function clearNotebook() {
   notebookUrl = null;
   $('saveNotebook').hidden = true; $('saveNotebook').removeAttribute('href');
 }
-for (const id of ['duration','motion','seed']) $(id).addEventListener('input', clearNotebook);
+for (const id of ['duration','motion','seed','preset']) $(id).addEventListener('input', clearNotebook);
 function clearImage() {
   selectionVersion++;
   imageBase64 = null;
@@ -26,7 +26,12 @@ $('image').addEventListener('change', async event => {
   try {
     if (!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('JPEG・PNG・WebPの画像を選んでください。HEICはJPEGに変換してください。');
     if (file.size > 20 * 1024 * 1024) throw new Error('画像が20MBを超えています。サイズを小さくしてください。');
-    const bitmap = await createImageBitmap(file, {imageOrientation:'from-image'});
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file, {imageOrientation:'from-image'});
+    } catch {
+      throw new Error('画像を読み込めませんでした。破損していないJPEG・PNG・WebPを選んでください。');
+    }
     try {
       if (version !== selectionVersion) return;
       // Re-encode a bounded image. Removes EXIF and avoids large notebook payloads.
@@ -49,7 +54,7 @@ $('image').addEventListener('change', async event => {
 });
 $('export').addEventListener('click', () => {
   try {
-    const notebook = makeNotebook({provider:'kaggle-svd',imageBase64,duration:Number($('duration').value),motion:Number($('motion').value),seed:Number($('seed').value)});
+    const notebook = makeNotebook({provider:'kaggle-svd',imageBase64,preset:$('preset').value,duration:Number($('duration').value),motion:Number($('motion').value),seed:Number($('seed').value)});
     clearNotebook();
     notebookUrl = URL.createObjectURL(new Blob([JSON.stringify(notebook,null,2)],{type:'application/x-ipynb+json'}));
     $('saveNotebook').href = notebookUrl; $('saveNotebook').download = 'private-ai-studio.ipynb';

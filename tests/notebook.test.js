@@ -17,12 +17,20 @@ test('embedded image roundtrips exactly without filesystem dependencies', () => 
   assert.equal(output.trim(),'7');
 });
 test('invalid jobs cannot silently generate an invalid notebook', () => {
-  for (const patch of [{imageBase64:null},{imageBase64:'x\";evil()'},{duration:10},{seed:-1},{seed:1.5},{motion:256},{provider:'unknown'}]) assert.throws(()=>makeNotebook({...job,...patch}));
+  for (const patch of [{imageBase64:null},{imageBase64:'x\";evil()'},{duration:10},{seed:-1},{seed:1.5},{motion:256},{provider:'unknown'},{preset:'unknown'}]) assert.throws(()=>makeNotebook({...job,...patch}));
 });
 test('duration controls playback fps, inference conditioning remains fixed', () => {
   for (const [duration,fps] of [[2,7],[3,5],[4,4]]) {
     const notebook = makeNotebook({...job,duration});
     assert.ok(notebook.cells[2].source.join('').includes(`\\"fps\\":${fps}`));
     assert.ok(notebook.cells[3].source.join('').includes('fps=7'));
+  }
+});
+
+test('export carries light and standard resolution and compute settings to Python', () => {
+  for (const [preset,width,height,steps] of [['light',576,320,15],['standard',1024,576,25]]) {
+    const n=makeNotebook({...job,preset});
+    const out=execFileSync('python',['-c','import sys,ast,json\nt=ast.parse(sys.stdin.read())\na=next(n for n in t.body if isinstance(n,ast.Assign) and any(isinstance(x,ast.Name) and x.id=="CONFIG" for x in n.targets))\nc=json.loads(ast.literal_eval(a.value.args[0]))\nprint(json.dumps([c["width"],c["height"],c["steps"]]))'],{input:n.cells[2].source.join(''),encoding:'utf8'});
+    assert.deepEqual(JSON.parse(out),[width,height,steps]);
   }
 });
