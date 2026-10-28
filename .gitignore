@@ -1,0 +1,6 @@
+.openai/
+node_modules/
+__pycache__/
+*.mp4
+*.zip
+dist/
